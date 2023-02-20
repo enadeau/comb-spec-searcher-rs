@@ -1,5 +1,5 @@
-use crate::pack::StrategyFactory;
 use crate::combinatorial_class::CombinatorialClass;
+use crate::pack::{Rule, Strategy, StrategyFactory};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct AvoidingWithPrefix {
@@ -18,19 +18,28 @@ impl AvoidingWithPrefix {
     }
 }
 
-impl CombinatorialClass for AvoidingWithPrefix {
-}
+impl CombinatorialClass for AvoidingWithPrefix {}
 
-pub enum WordStrategyFactory {
+#[derive(Debug)]
+pub enum WordStrategy {
     Atom,
     RemoveFrontOfPrefix,
     Expansion,
 }
 
-impl StrategyFactory for WordStrategyFactory {
+impl StrategyFactory for WordStrategy {
+    type ClassType = AvoidingWithPrefix;
+    type StrategyType = WordStrategy;
+
+    fn apply(&self, comb_class: &AvoidingWithPrefix) -> Vec<WordStrategy> {
+        todo!();
+    }
+}
+
+impl Strategy for WordStrategy {
     type ClassType = AvoidingWithPrefix;
 
-    fn apply(&self, class: &AvoidingWithPrefix) {
+    fn apply(&self, comb_class: &AvoidingWithPrefix) -> Rule<AvoidingWithPrefix, WordStrategy> {
         todo!();
     }
 }
