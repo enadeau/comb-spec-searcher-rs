@@ -7,24 +7,16 @@ mod queue;
 
 pub struct CombinatorialSpecification {}
 
-pub struct CombinatorialSpecificationSearcher<C, S, F>
-where
-    C: CombinatorialClass,
-    S: Strategy<ClassType=C>,
-    F: StrategyFactory<ClassType=C, StrategyType=S>,
+pub struct CombinatorialSpecificationSearcher<F: StrategyFactory>
 {
-    start_class: C,
-    queue: queue::ClassQueue<C, S, F>,
-    classdb: classdb::ClassDB<C>,
+    start_class: F::ClassType,
+    queue: queue::ClassQueue<F>,
+    classdb: classdb::ClassDB<F::ClassType>,
 }
 
-impl<C, S, F> CombinatorialSpecificationSearcher<C, S, F>
-where
-    C: CombinatorialClass,
-    S: Strategy<ClassType = C>,
-    F: StrategyFactory<ClassType = C, StrategyType=S>,
+impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F>
 {
-    pub fn new(start_class: C, pack: StrategyPack<F>) -> Self {
+    pub fn new(start_class: F::ClassType, pack: StrategyPack<F>) -> Self {
         let mut classdb = classdb::ClassDB::new();
         let start_label = classdb.get_label_from_class(&start_class);
         let queue = queue::ClassQueue::new(pack, start_label);

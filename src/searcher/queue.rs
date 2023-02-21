@@ -2,11 +2,7 @@ use crate::pack::{StrategyFactory, StrategyPack, Strategy};
 use crate::combinatorial_class::CombinatorialClass;
 use std::collections::VecDeque;
 
-pub struct ClassQueue<C, S, F>
-where
-    C: CombinatorialClass,
-    S: Strategy<ClassType=C>,
-    F: StrategyFactory<ClassType=C, StrategyType=S>,
+pub struct ClassQueue<F: StrategyFactory>
 {
     pack: StrategyPack<F>,
     queue: VecDeque<usize>,
@@ -15,11 +11,7 @@ where
     max_strat_index: usize,
 }
 
-impl<C, S, F> ClassQueue<C, S, F>
-where
-    C: CombinatorialClass,
-    S: Strategy<ClassType=C>,
-    F: StrategyFactory<ClassType=C, StrategyType=S>,
+impl<F: StrategyFactory> ClassQueue<F>
 {
     pub fn new(pack: StrategyPack<F>, start_label: usize) -> Self {
         let pack_size = pack.len();
