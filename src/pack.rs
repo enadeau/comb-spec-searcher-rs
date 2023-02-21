@@ -9,7 +9,7 @@ where
     strategy: S,
 }
 
-pub trait Strategy: Sized{
+pub trait Strategy: Sized {
     type ClassType: CombinatorialClass;
 
     fn apply(&self, comb_class: &Self::ClassType) -> Rule<Self::ClassType, Self>;
@@ -17,16 +17,12 @@ pub trait Strategy: Sized{
 
 pub trait StrategyFactory {
     type ClassType: CombinatorialClass;
-    type StrategyType: Strategy<ClassType=Self::ClassType>;
+    type StrategyType: Strategy<ClassType = Self::ClassType>;
 
-    fn apply(
-        &self,
-        class: &Self::ClassType
-    ) -> Vec<Self::StrategyType>;
+    fn apply(&self, class: &Self::ClassType) -> Vec<Self::StrategyType>;
 }
 
-pub struct StrategyPack<F: StrategyFactory>
-{
+pub struct StrategyPack<F: StrategyFactory> {
     pub initials: Vec<F>,
     pub inferrals: Vec<F>,
     pub expansions: Vec<F>,

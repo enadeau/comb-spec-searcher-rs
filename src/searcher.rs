@@ -7,15 +7,13 @@ mod queue;
 
 pub struct CombinatorialSpecification {}
 
-pub struct CombinatorialSpecificationSearcher<F: StrategyFactory>
-{
+pub struct CombinatorialSpecificationSearcher<F: StrategyFactory> {
     start_class: F::ClassType,
     queue: queue::ClassQueue<F>,
     classdb: classdb::ClassDB<F::ClassType>,
 }
 
-impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F>
-{
+impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
     pub fn new(start_class: F::ClassType, pack: StrategyPack<F>) -> Self {
         let mut classdb = classdb::ClassDB::new();
         let start_label = classdb.get_label_from_class(&start_class);

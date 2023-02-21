@@ -5,23 +5,23 @@ pub struct ClassDB<C: CombinatorialClass> {
 }
 
 impl<C: CombinatorialClass> ClassDB<C> {
-   pub fn new() -> Self {
-       Self {  data: Vec::new() }
-   }
+    pub fn new() -> Self {
+        Self { data: Vec::new() }
+    }
 
-   pub fn get_label_from_class(&mut self, class: &C) -> usize {
-       match self.data.iter().position(|x| x == class) {
-           Some(index) => index,
-           None => {
-               self.data.push(class.clone());
-               self.data.len() - 1
-           }
-       }
-   }
+    pub fn get_label_from_class(&mut self, class: &C) -> usize {
+        match self.data.iter().position(|x| x == class) {
+            Some(index) => index,
+            None => {
+                self.data.push(class.clone());
+                self.data.len() - 1
+            }
+        }
+    }
 
-   pub fn get_class_from_label(&self, label: usize) -> Option<&C> {
-       self.data.get(label)
-   }
+    pub fn get_class_from_label(&self, label: usize) -> Option<&C> {
+        self.data.get(label)
+    }
 }
 
 #[cfg(test)]
@@ -45,6 +45,5 @@ mod tests {
         assert_eq!(classdb.get_label_from_class(&w3), 2);
         assert_eq!(classdb.get_label_from_class(&w1), 0);
         assert_eq!(classdb.get_label_from_class(&w2), 1);
-
     }
 }

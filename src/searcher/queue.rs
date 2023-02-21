@@ -1,9 +1,8 @@
-use crate::pack::{StrategyFactory, StrategyPack, Strategy};
 use crate::combinatorial_class::CombinatorialClass;
+use crate::pack::{Strategy, StrategyFactory, StrategyPack};
 use std::collections::VecDeque;
 
-pub struct ClassQueue<F: StrategyFactory>
-{
+pub struct ClassQueue<F: StrategyFactory> {
     pack: StrategyPack<F>,
     queue: VecDeque<usize>,
     curr_label: usize,
@@ -11,8 +10,7 @@ pub struct ClassQueue<F: StrategyFactory>
     max_strat_index: usize,
 }
 
-impl<F: StrategyFactory> ClassQueue<F>
-{
+impl<F: StrategyFactory> ClassQueue<F> {
     pub fn new(pack: StrategyPack<F>, start_label: usize) -> Self {
         let pack_size = pack.len();
         Self {
@@ -31,6 +29,9 @@ impl<F: StrategyFactory> ClassQueue<F>
         } else {
             self.strat_index += 1;
         }
-        Some((self.curr_label, self.pack.get_strategy_factory(self.strat_index)))
+        Some((
+            self.curr_label,
+            self.pack.get_strategy_factory(self.strat_index),
+        ))
     }
 }
