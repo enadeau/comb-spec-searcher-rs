@@ -9,6 +9,19 @@ where
     strategy: S,
 }
 
+impl<C, S> Rule<C, S>
+where
+    C: CombinatorialClass,
+    S: Strategy<ClassType = C>,
+{
+    pub fn new(comb_class: C, strategy: S) -> Rule<C, S> {
+        Rule {
+            comb_class,
+            strategy,
+        }
+    }
+}
+
 pub trait Strategy: Sized {
     type ClassType: CombinatorialClass;
 
@@ -19,7 +32,7 @@ pub trait StrategyFactory {
     type ClassType: CombinatorialClass;
     type StrategyType: Strategy<ClassType = Self::ClassType>;
 
-    fn apply(&self, class: &Self::ClassType) -> Vec<Self::StrategyType>;
+    fn apply(&self, class: &Self::ClassType) -> Vec<Rule<Self::ClassType, Self::StrategyType>>;
 }
 
 pub struct StrategyPack<F: StrategyFactory> {
