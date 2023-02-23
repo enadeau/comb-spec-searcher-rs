@@ -25,7 +25,7 @@ where
 pub trait Strategy: Sized {
     type ClassType: CombinatorialClass;
 
-    fn apply(&self, comb_class: &Self::ClassType) -> Rule<Self::ClassType, Self>;
+    fn decompose(&self, comb_class: &Self::ClassType) -> Vec<Self::ClassType>;
 }
 
 pub trait StrategyFactory {

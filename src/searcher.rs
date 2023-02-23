@@ -1,5 +1,4 @@
-use crate::combinatorial_class::CombinatorialClass;
-use crate::pack::{Strategy, StrategyFactory, StrategyPack};
+use crate::pack::{StrategyFactory, StrategyPack};
 use std::time::{Duration, Instant};
 
 mod classdb;

@@ -19,6 +19,15 @@ impl AvoidingWithPrefix {
         }
     }
 
+    pub fn new_just_prefix(prefix: String, patterns: Vec<String>, alphabet: Vec<char>) -> Self {
+        Self {
+            prefix,
+            patterns,
+            alphabet,
+            just_prefix: true,
+        }
+    }
+
     pub fn is_just_prefix(&self) -> bool {
         self.just_prefix
     }
@@ -42,9 +51,9 @@ impl StrategyFactory for WordStrategy {
         comb_class: &AvoidingWithPrefix,
     ) -> Vec<Rule<AvoidingWithPrefix, WordStrategy>> {
         match self {
-            WordStrategy::Atom => AtomStrategy::apply(comb_class),
-            WordStrategy::RemoveFrontOfPrefix => RemoveFrontOfPrefixStrategy::apply(comb_class),
-            WordStrategy::Expansion => ExpansionStrategy::apply(comb_class),
+            WordStrategy::Atom => atom_strategy::apply(comb_class),
+            WordStrategy::RemoveFrontOfPrefix => remove_front_of_prefix_strategy::apply(comb_class),
+            WordStrategy::Expansion => expansion_strategy::apply(comb_class),
         }
     }
 }
@@ -52,12 +61,18 @@ impl StrategyFactory for WordStrategy {
 impl Strategy for WordStrategy {
     type ClassType = AvoidingWithPrefix;
 
-    fn apply(&self, comb_class: &AvoidingWithPrefix) -> Rule<AvoidingWithPrefix, WordStrategy> {
-        todo!();
+    fn decompose(&self, comb_class: &Self::ClassType) -> Vec<Self::ClassType> {
+        match self {
+            WordStrategy::Atom => atom_strategy::decompose(comb_class),
+            WordStrategy::RemoveFrontOfPrefix => {
+                remove_front_of_prefix_strategy::decompose(comb_class)
+            }
+            WordStrategy::Expansion => expansion_strategy::decompose(comb_class),
+        }
     }
 }
 
-mod AtomStrategy {
+mod atom_strategy {
     use super::{AvoidingWithPrefix, Rule, WordStrategy};
     pub fn apply(comb_class: &AvoidingWithPrefix) -> Vec<Rule<AvoidingWithPrefix, WordStrategy>> {
         let mut res = vec![];
@@ -67,9 +82,13 @@ mod AtomStrategy {
         }
         res
     }
+
+    pub fn decompose(word: &AvoidingWithPrefix) -> Vec<AvoidingWithPrefix> {
+        vec![]
+    }
 }
 
-mod RemoveFrontOfPrefixStrategy {
+mod remove_front_of_prefix_strategy {
     use super::{AvoidingWithPrefix, Rule, WordStrategy};
     use std::cmp;
 
@@ -99,11 +118,50 @@ mod RemoveFrontOfPrefixStrategy {
         }
         safe
     }
+
+    pub fn decompose(word: &AvoidingWithPrefix) -> Vec<AvoidingWithPrefix> {
+        let safe = removable_prefix_length(word);
+        let start_prefix = &word.prefix[..safe];
+        let end_prefix = &word.prefix[safe..];
+        let start = AvoidingWithPrefix::new_just_prefix(
+            start_prefix.to_string(),
+            word.patterns.clone(),
+            word.alphabet.clone(),
+        );
+        let end = AvoidingWithPrefix::new(
+            end_prefix.to_string(),
+            word.patterns.clone(),
+            word.alphabet.clone(),
+        );
+        vec![start, end]
+    }
 }
 
-mod ExpansionStrategy {
+mod expansion_strategy {
     use super::{AvoidingWithPrefix, Rule, WordStrategy};
-    pub fn apply(comb_class: &AvoidingWithPrefix) -> Vec<Rule<AvoidingWithPrefix, WordStrategy>> {
-        vec![Rule::new(comb_class.clone(), WordStrategy::Expansion)]
+    pub fn apply(word: &AvoidingWithPrefix) -> Vec<Rule<AvoidingWithPrefix, WordStrategy>> {
+        let mut res = vec![];
+        if !word.is_just_prefix() {
+            res.push(Rule::new(word.clone(), WordStrategy::Expansion))
+        }
+        res
+    }
+
+    pub fn decompose(word: &AvoidingWithPrefix) -> Vec<AvoidingWithPrefix> {
+        let mut children = vec![AvoidingWithPrefix::new_just_prefix(
+            word.prefix.clone(),
+            word.patterns.clone(),
+            word.alphabet.clone(),
+        )];
+        for letter in word.alphabet.iter() {
+            let mut new_prefix = word.prefix.clone();
+            new_prefix.push(*letter);
+            children.push(AvoidingWithPrefix::new(
+                new_prefix,
+                word.patterns.clone(),
+                word.alphabet.clone(),
+            ));
+        }
+        children
     }
 }
