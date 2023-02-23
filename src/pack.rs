@@ -1,20 +1,12 @@
 use crate::combinatorial_class::CombinatorialClass;
 
-pub struct Rule<C, S>
-where
-    C: CombinatorialClass,
-    S: Strategy<ClassType = C>,
-{
-    comb_class: C,
+pub struct Rule<S: Strategy> {
+    comb_class: S::ClassType,
     strategy: S,
 }
 
-impl<C, S> Rule<C, S>
-where
-    C: CombinatorialClass,
-    S: Strategy<ClassType = C>,
-{
-    pub fn new(comb_class: C, strategy: S) -> Rule<C, S> {
+impl<S: Strategy> Rule<S> {
+    pub fn new(comb_class: S::ClassType, strategy: S) -> Rule<S> {
         Rule {
             comb_class,
             strategy,
@@ -32,7 +24,7 @@ pub trait StrategyFactory {
     type ClassType: CombinatorialClass;
     type StrategyType: Strategy<ClassType = Self::ClassType>;
 
-    fn apply(&self, class: &Self::ClassType) -> Vec<Rule<Self::ClassType, Self::StrategyType>>;
+    fn apply(&self, class: &Self::ClassType) -> Vec<Rule<Self::StrategyType>>;
 }
 
 pub struct StrategyPack<F: StrategyFactory> {

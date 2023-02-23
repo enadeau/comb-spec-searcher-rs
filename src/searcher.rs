@@ -37,7 +37,7 @@ impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
                 .classdb
                 .get_class_from_label(class_label)
                 .expect("Class label not found");
-            strategy_factory.apply(&class);
+            let rule = strategy_factory.apply(&class);
         }
     }
 }

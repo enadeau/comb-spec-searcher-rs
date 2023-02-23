@@ -46,10 +46,7 @@ impl StrategyFactory for WordStrategy {
     type ClassType = AvoidingWithPrefix;
     type StrategyType = WordStrategy;
 
-    fn apply(
-        &self,
-        comb_class: &AvoidingWithPrefix,
-    ) -> Vec<Rule<AvoidingWithPrefix, WordStrategy>> {
+    fn apply(&self, comb_class: &AvoidingWithPrefix) -> Vec<Rule<WordStrategy>> {
         match self {
             WordStrategy::Atom => atom_strategy::apply(comb_class),
             WordStrategy::RemoveFrontOfPrefix => remove_front_of_prefix_strategy::apply(comb_class),
@@ -74,7 +71,7 @@ impl Strategy for WordStrategy {
 
 mod atom_strategy {
     use super::{AvoidingWithPrefix, Rule, WordStrategy};
-    pub fn apply(comb_class: &AvoidingWithPrefix) -> Vec<Rule<AvoidingWithPrefix, WordStrategy>> {
+    pub fn apply(comb_class: &AvoidingWithPrefix) -> Vec<Rule<WordStrategy>> {
         let mut res = vec![];
         if comb_class.is_just_prefix() {
             let strategy = WordStrategy::Atom;
@@ -92,7 +89,7 @@ mod remove_front_of_prefix_strategy {
     use super::{AvoidingWithPrefix, Rule, WordStrategy};
     use std::cmp;
 
-    pub fn apply(comb_class: &AvoidingWithPrefix) -> Vec<Rule<AvoidingWithPrefix, WordStrategy>> {
+    pub fn apply(comb_class: &AvoidingWithPrefix) -> Vec<Rule<WordStrategy>> {
         let mut res = vec![];
         if !comb_class.is_just_prefix() {
             let safe = removable_prefix_length(comb_class);
@@ -139,7 +136,7 @@ mod remove_front_of_prefix_strategy {
 
 mod expansion_strategy {
     use super::{AvoidingWithPrefix, Rule, WordStrategy};
-    pub fn apply(word: &AvoidingWithPrefix) -> Vec<Rule<AvoidingWithPrefix, WordStrategy>> {
+    pub fn apply(word: &AvoidingWithPrefix) -> Vec<Rule<WordStrategy>> {
         let mut res = vec![];
         if !word.is_just_prefix() {
             res.push(Rule::new(word.clone(), WordStrategy::Expansion))
