@@ -12,12 +12,21 @@ impl<S: Strategy> Rule<S> {
             strategy,
         }
     }
+
+    pub fn get_strategy(self) -> S {
+        self.strategy
+    }
+
+    pub fn is_equivalence(&self) -> bool {
+        self.strategy.is_equivalence()
+    }
 }
 
 pub trait Strategy: Sized {
     type ClassType: CombinatorialClass;
 
     fn decompose(&self, comb_class: &Self::ClassType) -> Vec<Self::ClassType>;
+    fn is_equivalence(&self) -> bool;
 }
 
 pub trait StrategyFactory {

@@ -67,6 +67,14 @@ impl Strategy for WordStrategy {
             WordStrategy::Expansion => expansion_strategy::decompose(comb_class),
         }
     }
+
+    fn is_equivalence(&self) -> bool {
+        match self {
+            WordStrategy::Atom => false,
+            WordStrategy::RemoveFrontOfPrefix => false,
+            WordStrategy::Expansion => true,
+        }
+    }
 }
 
 mod atom_strategy {

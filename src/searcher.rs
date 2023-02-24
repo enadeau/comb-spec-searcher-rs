@@ -2,7 +2,9 @@ use crate::pack::{StrategyFactory, StrategyPack};
 use std::time::{Duration, Instant};
 
 mod classdb;
+mod equiv_db;
 mod queue;
+mod ruledb;
 
 pub struct CombinatorialSpecification {}
 
@@ -10,6 +12,7 @@ pub struct CombinatorialSpecificationSearcher<F: StrategyFactory> {
     start_class: F::ClassType,
     queue: queue::ClassQueue<F>,
     classdb: classdb::ClassDB<F::ClassType>,
+    ruledb: ruledb::RuleDB<F::StrategyType>,
 }
 
 impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
@@ -17,10 +20,12 @@ impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
         let mut classdb = classdb::ClassDB::new();
         let start_label = classdb.get_label_from_class(&start_class);
         let queue = queue::ClassQueue::new(pack, start_label);
+        let ruledb = ruledb::RuleDB::new();
         Self {
             start_class,
             queue,
             classdb,
+            ruledb,
         }
     }
 
