@@ -30,7 +30,7 @@ impl<F: StrategyFactory> ClassQueue<F> {
         }
         Some((
             self.curr_label,
-            self.pack.get_strategy_factory(self.strat_index),
+            self.pack.get_strategy_factory(self.strat_index - 1),
         ))
     }
 }
