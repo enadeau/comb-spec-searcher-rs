@@ -95,6 +95,7 @@ mod atom_strategy {
 
 mod remove_front_of_prefix_strategy {
     use super::{AvoidingWithPrefix, Rule, WordStrategy};
+    use std::cmp;
 
     pub fn apply(comb_class: &AvoidingWithPrefix) -> Vec<Rule<WordStrategy>> {
         let mut res = vec![];
@@ -119,7 +120,11 @@ mod remove_front_of_prefix_strategy {
         };
         for i in safe..word.prefix.len() {
             let end = &word.prefix[i..];
-            if word.patterns.iter().any(|patt| end == &patt[..end.len()]) {
+            if word
+                .patterns
+                .iter()
+                .any(|patt| end == &patt[..cmp::min(end.len(), patt.len())])
+            {
                 break;
             }
             safe = i + 1;
