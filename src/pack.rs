@@ -1,15 +1,18 @@
 use crate::combinatorial_class::CombinatorialClass;
 
 pub struct Rule<S: Strategy> {
-    comb_class: S::ClassType,
+    parent: S::ClassType,
     strategy: S,
+    children: Vec<S::ClassType>,
 }
 
 impl<S: Strategy> Rule<S> {
-    pub fn new(comb_class: S::ClassType, strategy: S) -> Rule<S> {
+    pub fn new(parent: S::ClassType, strategy: S) -> Rule<S> {
+        let children = strategy.decompose(&parent);
         Rule {
-            comb_class,
+            parent,
             strategy,
+            children,
         }
     }
 
@@ -19,6 +22,14 @@ impl<S: Strategy> Rule<S> {
 
     pub fn is_equivalence(&self) -> bool {
         self.strategy.is_equivalence()
+    }
+
+    pub fn get_parent(&self) -> &S::ClassType {
+        &self.parent
+    }
+
+    pub fn get_children(&self) -> &Vec<S::ClassType> {
+        &self.children
     }
 }
 

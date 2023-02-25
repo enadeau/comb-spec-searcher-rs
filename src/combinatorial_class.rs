@@ -1,1 +1,3 @@
-pub trait CombinatorialClass: Clone + PartialEq {}
+use std::fmt::Debug;
+
+pub trait CombinatorialClass: Debug + Clone + PartialEq {}
