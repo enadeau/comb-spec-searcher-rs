@@ -1,4 +1,4 @@
-use crate::pack::{StrategyFactory, StrategyPack};
+use crate::pack::{Rule, StrategyFactory, StrategyPack};
 use std::time::{Duration, Instant};
 
 mod classdb;
@@ -50,8 +50,13 @@ impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
                     .iter()
                     .map(|c| self.classdb.get_label_from_class(c))
                     .collect();
-                self.ruledb.add(start, ends, rule);
+                self.add_rule(start, ends, rule);
             }
         }
+    }
+
+    fn add_rule(&mut self, start: usize, ends: Vec<usize>, rule: Rule<F::StrategyType>) {
+        ends.iter().map(|l| self.queue.add(*l)).last();
+        self.ruledb.add(start, ends, rule);
     }
 }

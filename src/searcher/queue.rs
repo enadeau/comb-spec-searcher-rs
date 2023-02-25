@@ -21,9 +21,13 @@ impl<F: StrategyFactory> ClassQueue<F> {
         }
     }
 
+    pub fn add(&mut self, label: usize) {
+        self.queue.push_back(label);
+    }
+
     pub fn next(&mut self) -> Option<(usize, &F)> {
         if self.max_strat_index == self.strat_index {
-            self.strat_index = 0;
+            self.strat_index = 1;
             self.curr_label = self.queue.pop_front()?;
         } else {
             self.strat_index += 1;
