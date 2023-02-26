@@ -31,6 +31,9 @@ impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
 
     pub fn auto_search(&mut self) -> CombinatorialSpecification {
         self.expand_for(Duration::from_secs(10));
+        let s = self
+            .ruledb
+            .get_specification_rules(self.classdb.get_label_from_class(&self.start_class));
         CombinatorialSpecification {}
     }
 
