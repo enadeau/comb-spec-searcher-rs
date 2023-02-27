@@ -18,7 +18,7 @@ pub struct CombinatorialSpecificationSearcher<F: StrategyFactory> {
 impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
     pub fn new(start_class: F::ClassType, pack: StrategyPack<F>) -> Self {
         let mut classdb = classdb::ClassDB::new();
-        let start_label = classdb.get_label_from_class(&start_class);
+        let start_label = classdb.get_label_from_class_or_add(&start_class);
         let queue = queue::ClassQueue::new(pack, start_label);
         let ruledb = ruledb::RuleDB::new();
         Self {
@@ -31,9 +31,11 @@ impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
 
     pub fn auto_search(&mut self) -> CombinatorialSpecification {
         self.expand_for(Duration::from_secs(10));
-        let s = self
-            .ruledb
-            .get_specification_rules(self.classdb.get_label_from_class(&self.start_class));
+        let s = self.ruledb.get_specification_rules(
+            self.classdb
+                .get_label_from_class(&self.start_class)
+                .expect("Start class label not found"),
+        );
         CombinatorialSpecification {}
     }
 
@@ -47,11 +49,11 @@ impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
                 .expect("Class label not found");
             let rules = strategy_factory.apply(&class);
             for rule in rules.into_iter() {
-                let start = self.classdb.get_label_from_class(rule.get_parent());
+                let start = self.classdb.get_label_from_class_or_add(rule.get_parent());
                 let ends = rule
                     .get_children()
                     .iter()
-                    .map(|c| self.classdb.get_label_from_class(c))
+                    .map(|c| self.classdb.get_label_from_class_or_add(c))
                     .collect();
                 self.add_rule(start, ends, rule);
             }

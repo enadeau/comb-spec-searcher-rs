@@ -9,14 +9,18 @@ impl<C: CombinatorialClass> ClassDB<C> {
         Self { data: Vec::new() }
     }
 
-    pub fn get_label_from_class(&mut self, class: &C) -> usize {
-        match self.data.iter().position(|x| x == class) {
+    pub fn get_label_from_class_or_add(&mut self, class: &C) -> usize {
+        match self.get_label_from_class(class) {
             Some(index) => index,
             None => {
                 self.data.push(class.clone());
                 self.data.len() - 1
             }
         }
+    }
+
+    pub fn get_label_from_class(&self, class: &C) -> Option<usize> {
+        self.data.iter().position(|x| x == class)
     }
 
     pub fn get_class_from_label(&self, label: usize) -> Option<&C> {
@@ -37,13 +41,14 @@ mod tests {
         let w2 = AvoidingWithPrefix::new(String::from("a"), patterns.clone(), alphabet.clone());
         let w3 = AvoidingWithPrefix::new(String::from("b"), patterns.clone(), alphabet.clone());
         let mut classdb = ClassDB::new();
-        assert_eq!(classdb.get_label_from_class(&w1), 0);
-        assert_eq!(classdb.get_label_from_class(&w1), 0);
-        assert_eq!(classdb.get_label_from_class(&w2), 1);
-        assert_eq!(classdb.get_label_from_class(&w1), 0);
-        assert_eq!(classdb.get_label_from_class(&w2), 1);
-        assert_eq!(classdb.get_label_from_class(&w3), 2);
-        assert_eq!(classdb.get_label_from_class(&w1), 0);
-        assert_eq!(classdb.get_label_from_class(&w2), 1);
+        assert_eq!(classdb.get_label_from_class(&w1), None);
+        assert_eq!(classdb.get_label_from_class_or_add(&w1), 0);
+        assert_eq!(classdb.get_label_from_class(&w1), Some(0));
+        assert_eq!(classdb.get_label_from_class_or_add(&w2), 1);
+        assert_eq!(classdb.get_label_from_class(&w1), Some(0));
+        assert_eq!(classdb.get_label_from_class(&w2), Some(1));
+        assert_eq!(classdb.get_label_from_class_or_add(&w3), 2);
+        assert_eq!(classdb.get_label_from_class(&w1), Some(0));
+        assert_eq!(classdb.get_label_from_class(&w2), Some(1));
     }
 }
