@@ -1,5 +1,7 @@
+use super::ruledb::RuleLabel;
 use pathfinding::prelude::bfs;
 use std::cmp;
+
 /// Equivalence DB that keeps track of equivalence set
 /// using a union find datastructure.
 ///
@@ -81,6 +83,13 @@ impl EquivDB {
     pub fn union(&mut self, label1: usize, label2: usize) {
         self.edges.push((label1, label2));
         self.union_find.union(label1, label2)
+    }
+
+    /// Convert the given rule to it's equivalence label version
+    pub fn rule_up_to_equivalence(&mut self, rule: &RuleLabel) -> RuleLabel {
+        let eqv_parent = self.find(*rule.get_parent());
+        let eqv_children: Vec<_> = rule.get_children().iter().map(|c| self.find(*c)).collect();
+        RuleLabel::new(eqv_parent, eqv_children)
     }
 
     /// Find a sequence equivalence path between to class
