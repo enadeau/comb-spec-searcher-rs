@@ -1,3 +1,4 @@
+use pathfinding::prelude::bfs;
 use std::cmp;
 /// Equivalence DB that keeps track of equivalence set
 /// using a union find datastructure.
@@ -8,12 +9,12 @@ use std::cmp;
 use std::collections::HashMap;
 
 #[derive(Debug)]
-pub struct EquivDB {
+struct UnionFind {
     parent: HashMap<usize, usize>,
     weight: HashMap<usize, usize>,
 }
 
-impl EquivDB {
+impl UnionFind {
     pub fn new() -> Self {
         Self {
             parent: HashMap::new(),
@@ -52,6 +53,55 @@ impl EquivDB {
         let lightest = cmp::min_by_key(root1, root2, |r| self.weight.get(r).unwrap());
         *self.weight.get_mut(&heaviest).unwrap() += *self.weight.get(&lightest).unwrap();
         self.parent.insert(lightest, heaviest);
+    }
+
+    fn are_equivalent(&mut self, label1: usize, label2: usize) -> bool {
+        self.find(label1) == self.find(label2)
+    }
+}
+
+#[derive(Debug)]
+pub struct EquivDB {
+    union_find: UnionFind,
+    edges: Vec<(usize, usize)>,
+}
+
+impl EquivDB {
+    pub fn new() -> Self {
+        Self {
+            union_find: UnionFind::new(),
+            edges: Vec::new(),
+        }
+    }
+
+    pub fn find(&mut self, label: usize) -> usize {
+        self.union_find.find(label)
+    }
+
+    pub fn union(&mut self, label1: usize, label2: usize) {
+        self.edges.push((label1, label2));
+        self.union_find.union(label1, label2)
+    }
+
+    /// Find a sequence equivalence path between to class
+    pub fn find_path(&mut self, start: usize, end: usize) -> Vec<usize> {
+        let connected_component: Vec<_> = self
+            .edges
+            .iter()
+            .filter(|(v1, _)| self.union_find.are_equivalent(*v1, start))
+            .collect();
+        bfs(
+            &start,
+            |v| {
+                connected_component
+                    .iter()
+                    .filter(|(v1, v2)| v1 == v || v2 == v)
+                    .map(|(v1, v2)| if v1 == v { *v2 } else { *v1 })
+                    .collect::<Vec<_>>()
+            },
+            |v| *v == end,
+        )
+        .unwrap()
     }
 }
 
