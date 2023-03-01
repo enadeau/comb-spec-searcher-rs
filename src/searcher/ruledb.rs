@@ -29,7 +29,7 @@ impl<S: Strategy> RuleDB<S> {
     }
 
     pub fn get_specification_rules(&mut self, root: usize) -> Vec<Rule<S>> {
-        self.find_specification(root);
+        let s = self.find_specification(root).expect("NO spec found");
         todo!();
     }
 
@@ -60,7 +60,7 @@ fn prune(mut rules: HashMap<usize, HashSet<Vec<usize>>>) -> HashMap<usize, HashS
     while changed {
         changed = false;
         for (start, ends_set) in rules.iter_mut() {
-            ends_set.retain(|ends| ends.iter().any(|e| !keys.contains(e)));
+            ends_set.retain(|ends| ends.iter().all(|e| keys.contains(e)));
             if ends_set.is_empty() {
                 keys.remove(start);
                 changed = true;
@@ -71,6 +71,7 @@ fn prune(mut rules: HashMap<usize, HashSet<Vec<usize>>>) -> HashMap<usize, HashS
     rules
 }
 
+#[derive(Debug)]
 struct LabelRule {
     parent: usize,
     children: Vec<usize>,
@@ -106,4 +107,38 @@ fn random_proof_tree(
         });
     }
     Ok(res)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn prune_verification_rule_test() {
+        let mut rules = HashMap::new();
+        rules.insert(0, HashSet::from_iter(vec![vec![]]));
+        let rules = prune(rules);
+        assert_eq!(rules.len(), 1);
+    }
+
+    #[test]
+    fn prune_simple_tree_test() {
+        let mut rules = HashMap::new();
+        rules.insert(0, HashSet::from_iter(vec![vec![1, 2]]));
+        rules.insert(1, HashSet::from_iter(vec![vec![]]));
+        rules.insert(2, HashSet::from_iter(vec![vec![]]));
+        let rules = prune(rules);
+        assert_eq!(rules.len(), 3);
+    }
+
+    #[test]
+    fn prune_nothing_test() {
+        let mut rules = HashMap::new();
+        rules.insert(0, HashSet::from_iter(vec![vec![1, 2]]));
+        rules.insert(4, HashSet::from_iter(vec![vec![]]));
+        rules.insert(2, HashSet::from_iter(vec![vec![]]));
+        let rules = prune(rules);
+        assert_eq!(rules.len(), 2);
+        assert!(!rules.contains_key(&0));
+    }
 }

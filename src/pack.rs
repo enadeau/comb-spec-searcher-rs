@@ -1,5 +1,7 @@
 use crate::combinatorial_class::CombinatorialClass;
+use std::fmt::Debug;
 
+#[derive(Debug)]
 pub struct Rule<S: Strategy> {
     parent: S::ClassType,
     strategy: S,
@@ -33,7 +35,7 @@ impl<S: Strategy> Rule<S> {
     }
 }
 
-pub trait Strategy: Sized {
+pub trait Strategy: Debug + Sized {
     type ClassType: CombinatorialClass;
 
     fn decompose(&self, comb_class: &Self::ClassType) -> Vec<Self::ClassType>;

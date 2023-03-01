@@ -4,7 +4,8 @@ use comb_spec_searcher::CombinatorialSpecificationSearcher;
 
 fn main() {
     let prefix = String::from("");
-    let patterns = vec![String::from("ababa"), String::from("babb")];
+    // let patterns = vec![String::from("ababa"), String::from("babb")];
+    let patterns = vec![String::from("b")];
     let alphabet = vec!['a', 'b'];
     let start_class = word::AvoidingWithPrefix::new(prefix, patterns, alphabet);
     let pack = StrategyPack {

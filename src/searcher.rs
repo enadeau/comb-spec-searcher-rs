@@ -10,6 +10,7 @@ pub struct CombinatorialSpecification {}
 
 pub struct CombinatorialSpecificationSearcher<F: StrategyFactory> {
     start_class: F::ClassType,
+    start_label: usize,
     queue: queue::ClassQueue<F>,
     classdb: classdb::ClassDB<F::ClassType>,
     ruledb: ruledb::RuleDB<F::StrategyType>,
@@ -23,6 +24,7 @@ impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
         let ruledb = ruledb::RuleDB::new();
         Self {
             start_class,
+            start_label,
             queue,
             classdb,
             ruledb,
@@ -30,7 +32,7 @@ impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
     }
 
     pub fn auto_search(&mut self) -> CombinatorialSpecification {
-        self.expand_for(Duration::from_secs(10));
+        self.expand_for(Duration::from_millis(1));
         let s = self.ruledb.get_specification_rules(
             self.classdb
                 .get_label_from_class(&self.start_class)
