@@ -35,7 +35,7 @@ impl AvoidingWithPrefix {
 
 impl CombinatorialClass for AvoidingWithPrefix {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum WordStrategy {
     Atom,
     RemoveFrontOfPrefix,

@@ -1,10 +1,13 @@
+use super::classdb;
 use crate::errors::SpecificationNotFoundError;
 use crate::pack::Rule;
 use crate::pack::Strategy;
 use crate::searcher::equiv_db;
+use crate::specification::CombinatorialSpecification;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::ptr::eq;
 
 pub struct RuleDB<S: Strategy> {
     rule_to_strategy: HashMap<RuleLabel, S>,
@@ -27,9 +30,28 @@ impl<S: Strategy> RuleDB<S> {
             .insert(RuleLabel::new(start, ends), rule.get_strategy());
     }
 
-    pub fn get_specification_rules(&mut self, root: usize) -> Vec<Rule<S>> {
-        let s = self.find_specification(root).expect("NO spec found");
-        todo!();
+    pub fn get_specification(
+        &mut self,
+        root: usize,
+        classdb: &classdb::ClassDB<S::ClassType>,
+    ) -> Result<CombinatorialSpecification<S>, SpecificationNotFoundError> {
+        let eqv_specification_rules = self.find_specification(root)?;
+        let specification_rules = self.eqv_specification_to_specification(eqv_specification_rules);
+        let actual_rules: Vec<Rule<S>> = specification_rules
+            .into_iter()
+            .map(|rule| {
+                let parent = classdb
+                    .get_class_from_label(*rule.get_parent())
+                    .unwrap()
+                    .clone();
+                let strategy = self.rule_to_strategy.get(&rule).unwrap().clone();
+                Rule::new(parent, strategy)
+            })
+            .collect();
+        Ok(CombinatorialSpecification {
+            rules: actual_rules,
+            root: classdb.get_class_from_label(root).unwrap().clone(),
+        })
     }
 
     /// Find a specification in term of the equivalence label
@@ -40,6 +62,38 @@ impl<S: Strategy> RuleDB<S> {
         let rules = self.rule_up_to_equivalence();
         let rules = prune(rules);
         random_proof_tree(&rules, label)
+    }
+
+    /// Convert a specification in term of equivalence labels in to
+    /// specification in term of actual labels.
+    fn eqv_specification_to_specification(
+        &mut self,
+        eqv_specification_rules: Vec<RuleLabel>,
+    ) -> Vec<RuleLabel> {
+        let mut children: Vec<usize> = vec![];
+        let specification_rules_by_eqv_parent: HashMap<_, _> = eqv_specification_rules
+            .into_iter()
+            .map(|eqv_rule| {
+                let rule = self.find_rule_from_eqv_rule(&eqv_rule).unwrap().clone();
+                children.extend(rule.get_children());
+                (*eqv_rule.get_parent(), rule)
+            })
+            .collect();
+        let mut specification_rules = HashSet::new();
+        for child in children {
+            let child_eqv_label = self.equiv_db.find(child);
+            let parent_to_connect =
+                *specification_rules_by_eqv_parent[&child_eqv_label].get_parent();
+            let path = self.equiv_db.find_path(child, parent_to_connect);
+            for pair in path.windows(2) {
+                specification_rules.insert(RuleLabel {
+                    parent: pair[0],
+                    children: vec![pair[1]],
+                });
+            }
+        }
+        specification_rules.extend(specification_rules_by_eqv_parent.into_values());
+        specification_rules.into_iter().collect()
     }
 
     fn find_rule_from_eqv_rule(&mut self, eqv_rule: &RuleLabel) -> Option<&RuleLabel> {

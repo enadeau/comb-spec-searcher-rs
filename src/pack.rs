@@ -35,7 +35,7 @@ impl<S: Strategy> Rule<S> {
     }
 }
 
-pub trait Strategy: Debug + Sized {
+pub trait Strategy: Debug + Sized + Clone {
     type ClassType: CombinatorialClass;
 
     fn decompose(&self, comb_class: &Self::ClassType) -> Vec<Self::ClassType>;

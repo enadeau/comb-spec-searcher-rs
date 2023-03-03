@@ -16,5 +16,9 @@ fn main() {
     };
 
     let mut searcher = CombinatorialSpecificationSearcher::new(start_class, pack);
-    let spec = searcher.auto_search();
+    let spec = searcher.auto_search().expect("No spec");
+    for rule in spec.rules.iter() {
+        println!("{:?}", rule);
+        println!("=========");
+    }
 }

@@ -1,12 +1,12 @@
+use crate::errors::SpecificationNotFoundError;
 use crate::pack::{Rule, StrategyFactory, StrategyPack};
+use crate::specification::CombinatorialSpecification;
 use std::time::{Duration, Instant};
 
 mod classdb;
 mod equiv_db;
 mod queue;
 mod ruledb;
-
-pub struct CombinatorialSpecification {}
 
 pub struct CombinatorialSpecificationSearcher<F: StrategyFactory> {
     start_class: F::ClassType,
@@ -31,14 +31,16 @@ impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
         }
     }
 
-    pub fn auto_search(&mut self) -> CombinatorialSpecification {
+    pub fn auto_search(
+        &mut self,
+    ) -> Result<CombinatorialSpecification<F::StrategyType>, SpecificationNotFoundError> {
         self.expand_for(Duration::from_millis(1));
-        let s = self.ruledb.get_specification_rules(
+        self.ruledb.get_specification(
             self.classdb
                 .get_label_from_class(&self.start_class)
                 .expect("Start class label not found"),
-        );
-        CombinatorialSpecification {}
+            &self.classdb,
+        )
     }
 
     fn expand_for(&mut self, expansion_time: Duration) {
