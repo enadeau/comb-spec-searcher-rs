@@ -32,6 +32,13 @@ impl AvoidingWithPrefix {
     pub fn is_just_prefix(&self) -> bool {
         self.just_prefix
     }
+
+    /// Return true if any of the patterns is contained in the prefix
+    pub fn is_emtpy(&self) -> bool {
+        self.patterns
+            .iter()
+            .any(|pattern| self.prefix.contains(pattern))
+    }
 }
 
 impl CombinatorialClass for AvoidingWithPrefix {}
@@ -55,6 +62,7 @@ impl Serialize for AvoidingWithPrefix {
 #[derive(Debug, Clone)]
 pub enum WordStrategy {
     Atom,
+    Empty,
     RemoveFrontOfPrefix,
     Expansion,
 }
@@ -66,6 +74,7 @@ impl StrategyFactory for WordStrategy {
     fn apply(&self, comb_class: &AvoidingWithPrefix) -> Vec<Rule<WordStrategy>> {
         match self {
             WordStrategy::Atom => atom_strategy::apply(comb_class),
+            WordStrategy::Empty => empty_strategy::apply(comb_class),
             WordStrategy::RemoveFrontOfPrefix => remove_front_of_prefix_strategy::apply(comb_class),
             WordStrategy::Expansion => expansion_strategy::apply(comb_class),
         }
@@ -78,6 +87,7 @@ impl Strategy for WordStrategy {
     fn decompose(&self, comb_class: &Self::ClassType) -> Vec<Self::ClassType> {
         match self {
             WordStrategy::Atom => atom_strategy::decompose(),
+            WordStrategy::Empty => empty_strategy::decompose(),
             WordStrategy::RemoveFrontOfPrefix => {
                 remove_front_of_prefix_strategy::decompose(comb_class)
             }
@@ -88,6 +98,7 @@ impl Strategy for WordStrategy {
     fn is_equivalence(&self) -> bool {
         match self {
             WordStrategy::Atom => false,
+            WordStrategy::Empty => false,
             WordStrategy::RemoveFrontOfPrefix => false,
             WordStrategy::Expansion => true,
         }
@@ -113,6 +124,10 @@ impl Serialize for WordStrategy {
                 state.serialize_field("class_module", "comb_spec_searcher")?;
                 state.serialize_field("strategy_class", "AtomStrategy")?;
             }
+            WordStrategy::Empty => {
+                state.serialize_field("class_module", "comb_spec_searcher.strategies")?;
+                state.serialize_field("strategy_class", "EmptyStrategy")?;
+            }
         }
         state.end()
     }
@@ -122,8 +137,24 @@ mod atom_strategy {
     use super::{AvoidingWithPrefix, Rule, WordStrategy};
     pub fn apply(comb_class: &AvoidingWithPrefix) -> Vec<Rule<WordStrategy>> {
         let mut res = vec![];
-        if comb_class.is_just_prefix() {
+        if comb_class.is_just_prefix() && !comb_class.is_emtpy() {
             let strategy = WordStrategy::Atom;
+            res.push(Rule::new(comb_class.clone(), strategy));
+        }
+        res
+    }
+
+    pub fn decompose() -> Vec<AvoidingWithPrefix> {
+        vec![]
+    }
+}
+
+mod empty_strategy {
+    use super::{AvoidingWithPrefix, Rule, WordStrategy};
+    pub fn apply(comb_class: &AvoidingWithPrefix) -> Vec<Rule<WordStrategy>> {
+        let mut res = vec![];
+        if comb_class.is_emtpy() {
+            let strategy = WordStrategy::Empty;
             res.push(Rule::new(comb_class.clone(), strategy));
         }
         res
