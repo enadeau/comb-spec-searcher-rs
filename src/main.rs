@@ -1,6 +1,7 @@
 use comb_spec_searcher::pack::StrategyPack;
 use comb_spec_searcher::word;
 use comb_spec_searcher::CombinatorialSpecificationSearcher;
+use serde_json;
 
 fn main() {
     let prefix = String::from("");
@@ -17,8 +18,11 @@ fn main() {
 
     let mut searcher = CombinatorialSpecificationSearcher::new(start_class, pack);
     let spec = searcher.auto_search().expect("No spec");
-    for rule in spec.rules.iter() {
-        println!("{:?}", rule);
-        println!("=========");
+    for rule in spec.rules.into_iter() {
+        let parent = rule.get_parent();
+        println!("{}", serde_json::to_string(parent).unwrap());
+        let strategy = rule.get_strategy();
+        println!("{}", serde_json::to_string(&strategy).unwrap());
     }
+    println!("{}", serde_json::to_string(&spec.root).unwrap());
 }

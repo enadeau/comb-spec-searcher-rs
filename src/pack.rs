@@ -1,4 +1,5 @@
 use crate::combinatorial_class::CombinatorialClass;
+use serde::Serialize;
 use std::fmt::Debug;
 
 #[derive(Debug)]
@@ -35,7 +36,7 @@ impl<S: Strategy> Rule<S> {
     }
 }
 
-pub trait Strategy: Debug + Sized + Clone {
+pub trait Strategy: Debug + Sized + Clone + Serialize {
     type ClassType: CombinatorialClass;
 
     fn decompose(&self, comb_class: &Self::ClassType) -> Vec<Self::ClassType>;

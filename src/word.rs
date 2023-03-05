@@ -1,5 +1,6 @@
 use crate::combinatorial_class::CombinatorialClass;
 use crate::pack::{Rule, Strategy, StrategyFactory};
+use serde::ser::{Serialize, SerializeStruct, Serializer};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct AvoidingWithPrefix {
@@ -34,6 +35,22 @@ impl AvoidingWithPrefix {
 }
 
 impl CombinatorialClass for AvoidingWithPrefix {}
+
+impl Serialize for AvoidingWithPrefix {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("AvoidingWithPrefix", 5)?;
+        state.serialize_field("prefix", &self.prefix)?;
+        state.serialize_field("patterns", &self.patterns)?;
+        state.serialize_field("alphabet", &self.alphabet)?;
+        state.serialize_field("just_prefix", &self.just_prefix)?;
+        state.serialize_field("class_module", "example")?;
+        state.serialize_field("comb_class", "AvoidingWithPrefix")?;
+        state.end()
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum WordStrategy {
@@ -74,6 +91,30 @@ impl Strategy for WordStrategy {
             WordStrategy::RemoveFrontOfPrefix => false,
             WordStrategy::Expansion => true,
         }
+    }
+}
+
+impl Serialize for WordStrategy {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("WordStrategy", 2)?;
+        match self {
+            WordStrategy::Expansion => {
+                state.serialize_field("class_module", "example")?;
+                state.serialize_field("strategy_class", "ExpansionStrategy")?;
+            }
+            WordStrategy::RemoveFrontOfPrefix => {
+                state.serialize_field("class_module", "example")?;
+                state.serialize_field("strategy_class", "RemoveFrontOfPrefix")?;
+            }
+            WordStrategy::Atom => {
+                state.serialize_field("class_module", "comb_spec_searcher")?;
+                state.serialize_field("strategy_class", "AtomStrategy")?;
+            }
+        }
+        state.end()
     }
 }
 
