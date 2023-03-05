@@ -1,7 +1,6 @@
 use crate::errors::SpecificationNotFoundError;
 use crate::pack::{Rule, StrategyFactory, StrategyPack};
 use crate::specification::CombinatorialSpecification;
-use std::time::{Duration, Instant};
 
 mod classdb;
 mod equiv_db;
@@ -32,35 +31,39 @@ impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
     pub fn auto_search(
         &mut self,
     ) -> Result<CombinatorialSpecification<F::StrategyType>, SpecificationNotFoundError> {
-        self.expand_for(Duration::from_millis(1));
-        self.ruledb.get_specification(
-            self.start_label,
-            &self.classdb,
-        )
-    }
-
-    fn expand_for(&mut self, expansion_time: Duration) {
-        let start_time = Instant::now();
-        while start_time.elapsed() < expansion_time {
-            let (class_label, strategy_factory) = self.queue.next().expect("Queue is empty");
-            let class = self
-                .classdb
-                .get_class_from_label(class_label)
-                .expect("Class label not found");
-            let rules = strategy_factory.apply(&class);
-            for rule in rules.into_iter() {
-                let start = self.classdb.get_label_from_class_or_add(rule.get_parent());
-                let ends = rule
-                    .get_children()
-                    .iter()
-                    .map(|c| self.classdb.get_label_from_class_or_add(c))
-                    .collect();
-                self.add_rule(start, ends, rule);
+        loop {
+            self.expand_once();
+            match self
+                .ruledb
+                .get_specification(self.start_label, &self.classdb)
+            {
+                Ok(spec) => {
+                    return Ok(spec);
+                }
+                Err(_) => {}
             }
         }
     }
 
-    fn add_rule(&mut self, start: usize, ends: Vec<usize>, rule: Rule<F::StrategyType>) {
+    fn expand_once(&mut self) {
+        let (class_label, strategy_factory) = self.queue.next().expect("Queue is empty");
+        let class = self
+            .classdb
+            .get_class_from_label(class_label)
+            .expect("Class label not found");
+        let rules = strategy_factory.apply(&class);
+        for rule in rules.into_iter() {
+            self.add_rule(rule);
+        }
+    }
+
+    fn add_rule(&mut self, rule: Rule<F::StrategyType>) {
+        let start = self.classdb.get_label_from_class_or_add(rule.get_parent());
+        let ends: Vec<_> = rule
+            .get_children()
+            .iter()
+            .map(|c| self.classdb.get_label_from_class_or_add(c))
+            .collect();
         ends.iter().map(|l| self.queue.add(*l)).last();
         self.ruledb.add(start, ends, rule);
     }
