@@ -7,7 +7,6 @@ use crate::specification::CombinatorialSpecification;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::ptr::eq;
 
 pub struct RuleDB<S: Strategy> {
     rule_to_strategy: HashMap<RuleLabel, S>,
@@ -22,7 +21,7 @@ impl<S: Strategy> RuleDB<S> {
         }
     }
 
-    pub fn add(&mut self, start: usize, mut ends: Vec<usize>, rule: Rule<S>) {
+    pub fn add(&mut self, start: usize, ends: Vec<usize>, rule: Rule<S>) {
         if ends.len() == 1 && rule.is_equivalence() {
             self.equiv_db.union(start, ends[0]);
         }

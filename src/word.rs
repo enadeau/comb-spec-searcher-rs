@@ -77,7 +77,7 @@ impl Strategy for WordStrategy {
 
     fn decompose(&self, comb_class: &Self::ClassType) -> Vec<Self::ClassType> {
         match self {
-            WordStrategy::Atom => atom_strategy::decompose(comb_class),
+            WordStrategy::Atom => atom_strategy::decompose(),
             WordStrategy::RemoveFrontOfPrefix => {
                 remove_front_of_prefix_strategy::decompose(comb_class)
             }
@@ -129,7 +129,7 @@ mod atom_strategy {
         res
     }
 
-    pub fn decompose(word: &AvoidingWithPrefix) -> Vec<AvoidingWithPrefix> {
+    pub fn decompose() -> Vec<AvoidingWithPrefix> {
         vec![]
     }
 }

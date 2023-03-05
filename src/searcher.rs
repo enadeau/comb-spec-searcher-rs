@@ -9,7 +9,6 @@ mod queue;
 mod ruledb;
 
 pub struct CombinatorialSpecificationSearcher<F: StrategyFactory> {
-    start_class: F::ClassType,
     start_label: usize,
     queue: queue::ClassQueue<F>,
     classdb: classdb::ClassDB<F::ClassType>,
@@ -23,7 +22,6 @@ impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
         let queue = queue::ClassQueue::new(pack, start_label);
         let ruledb = ruledb::RuleDB::new();
         Self {
-            start_class,
             start_label,
             queue,
             classdb,
@@ -36,9 +34,7 @@ impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
     ) -> Result<CombinatorialSpecification<F::StrategyType>, SpecificationNotFoundError> {
         self.expand_for(Duration::from_millis(1));
         self.ruledb.get_specification(
-            self.classdb
-                .get_label_from_class(&self.start_class)
-                .expect("Start class label not found"),
+            self.start_label,
             &self.classdb,
         )
     }
