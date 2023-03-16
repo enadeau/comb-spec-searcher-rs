@@ -1,6 +1,7 @@
 use crate::pack::{StrategyFactory, StrategyPack};
 use std::collections::{HashSet, VecDeque};
 
+#[derive(Debug, PartialEq)]
 pub struct WorkPacket<'a, F: StrategyFactory> {
     pub class_label: usize,
     pub factory: &'a F,
@@ -58,5 +59,81 @@ impl<F: StrategyFactory> ClassQueue<F> {
             self.strat_index += 1;
         }
         Some((self.curr_label, self.strat_index - 1))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::combinatorial_class::CombinatorialClass;
+    use crate::pack::{Rule, Strategy, StrategyPack};
+
+    #[derive(Debug, PartialEq, Clone)]
+    struct MockClass {}
+
+    impl CombinatorialClass for MockClass {}
+
+    #[derive(Debug, PartialEq, Clone)]
+    enum MockStrategy {
+        Inferral1,
+        Inferral2,
+        Initial1,
+        Initial2,
+        Expansion1,
+        Expansion2,
+        Verification1,
+        Verification2,
+    }
+
+    impl Strategy for MockStrategy {
+        type ClassType = MockClass;
+
+        fn decompose(&self, comb_class: &MockClass) -> Vec<MockClass> {
+            unimplemented!();
+        }
+
+        fn is_equivalence(&self) -> bool {
+            unimplemented!();
+        }
+    }
+
+    impl StrategyFactory for MockStrategy {
+        type ClassType = MockClass;
+        type StrategyType = MockStrategy;
+
+        fn apply(&self, class: &MockClass) -> Vec<Rule<MockStrategy>> {
+            unimplemented!();
+        }
+    }
+
+    fn pack() -> StrategyPack<MockStrategy> {
+        StrategyPack {
+            initials: vec![MockStrategy::Initial1, MockStrategy::Initial2],
+            inferrals: vec![MockStrategy::Inferral1, MockStrategy::Inferral2],
+            expansions: vec![MockStrategy::Expansion1, MockStrategy::Expansion2],
+            verifications: vec![MockStrategy::Verification1, MockStrategy::Verification2],
+        }
+    }
+
+    #[test]
+    /// Test that the strategies are yielded in the right order for a single class
+    fn queue_basic_one_class_test() {
+        let mut queue = ClassQueue::new(pack(), 0);
+        let expected_factory = [
+            MockStrategy::Verification1,
+            MockStrategy::Verification2,
+            MockStrategy::Inferral1,
+            MockStrategy::Inferral2,
+            MockStrategy::Initial1,
+            MockStrategy::Initial2,
+            MockStrategy::Expansion1,
+            MockStrategy::Expansion2,
+        ];
+        for factory in expected_factory {
+            let wp = queue.next().unwrap();
+            assert_eq!(wp.class_label, 0);
+            assert_eq!(wp.factory, &factory);
+        }
+        assert_eq!(queue.next(), None);
     }
 }
