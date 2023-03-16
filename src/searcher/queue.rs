@@ -1,6 +1,11 @@
 use crate::pack::{StrategyFactory, StrategyPack};
 use std::collections::{HashSet, VecDeque};
 
+pub struct WorkPacket<'a, F: StrategyFactory> {
+    pub class_label: usize,
+    pub factory: &'a F,
+}
+
 pub struct ClassQueue<F: StrategyFactory> {
     pack: StrategyPack<F>,
     queue: VecDeque<usize>,
@@ -31,11 +36,14 @@ impl<F: StrategyFactory> ClassQueue<F> {
         self.ignore.insert(label);
     }
 
-    pub fn next(&mut self) -> Option<(usize, &F)> {
+    pub fn next(&mut self) -> Option<WorkPacket<F>> {
         loop {
             let next = self.next_no_ignore()?;
             if !self.ignore.contains(&next.0) {
-                return Some((next.0, self.pack.get_strategy_factory(next.1)));
+                return Some(WorkPacket {
+                    class_label: next.0,
+                    factory: self.pack.get_strategy_factory(next.1),
+                });
             }
         }
     }

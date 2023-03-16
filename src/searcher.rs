@@ -46,12 +46,12 @@ impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
     }
 
     fn expand_once(&mut self) {
-        let (class_label, strategy_factory) = self.queue.next().expect("Queue is empty");
+        let wp = self.queue.next().expect("Queue is empty");
         let class = self
             .classdb
-            .get_class_from_label(class_label)
+            .get_class_from_label(wp.class_label)
             .expect("Class label not found");
-        let rules = strategy_factory.apply(&class);
+        let rules = wp.factory.apply(&class);
         for rule in rules.into_iter() {
             self.add_rule(rule);
         }
