@@ -7,6 +7,21 @@ pub struct WorkPacket<'a, F: StrategyFactory> {
     pub factory: &'a F,
 }
 
+#[derive(Debug, PartialEq)]
+struct WorkPacketInternal {
+    class_label: usize,
+    factory_index: usize,
+}
+
+impl WorkPacketInternal {
+    fn make_external<F: StrategyFactory>(self, pack: &StrategyPack<F>) -> WorkPacket<F> {
+        WorkPacket {
+            class_label: self.class_label,
+            factory: pack.get_strategy_factory(self.factory_index),
+        }
+    }
+}
+
 pub struct ClassQueue<F: StrategyFactory> {
     pack: StrategyPack<F>,
     queue: VecDeque<usize>,
@@ -40,17 +55,14 @@ impl<F: StrategyFactory> ClassQueue<F> {
     pub fn next(&mut self) -> Option<WorkPacket<F>> {
         loop {
             let next = self.next_no_ignore()?;
-            if !self.ignore.contains(&next.0) {
-                return Some(WorkPacket {
-                    class_label: next.0,
-                    factory: self.pack.get_strategy_factory(next.1),
-                });
+            if !self.ignore.contains(&next.class_label) {
+                return Some(next.make_external(&self.pack));
             }
         }
     }
 
     /// Return the next logical work packet
-    fn next_no_ignore(&mut self) -> Option<(usize, usize)> {
+    fn next_no_ignore(&mut self) -> Option<WorkPacketInternal> {
         if self.max_strat_index == self.strat_index {
             self.ignore(self.curr_label);
             self.strat_index = 1;
@@ -58,7 +70,10 @@ impl<F: StrategyFactory> ClassQueue<F> {
         } else {
             self.strat_index += 1;
         }
-        Some((self.curr_label, self.strat_index - 1))
+        Some(WorkPacketInternal {
+            class_label: self.curr_label,
+            factory_index: self.strat_index - 1,
+        })
     }
 }
 
