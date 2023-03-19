@@ -28,7 +28,8 @@ pub struct ClassQueue<F: StrategyFactory> {
     inferral_queue: VecDeque<WorkPacketInternal>,
     initial_queue: VecDeque<WorkPacketInternal>,
     expansion_queue: VecDeque<WorkPacketInternal>,
-    ignore: HashSet<usize>,
+    ignore: HashSet<usize>, // Classes that should not be yielded anymore
+    added: HashSet<usize>,  // Classes already added to the queue
 }
 
 impl<F: StrategyFactory> ClassQueue<F> {
@@ -40,12 +41,16 @@ impl<F: StrategyFactory> ClassQueue<F> {
             initial_queue: VecDeque::new(),
             expansion_queue: VecDeque::new(),
             ignore: HashSet::new(),
+            added: HashSet::new(),
         };
         queue.add(start_label);
         queue
     }
 
     pub fn add(&mut self, class_label: usize) {
+        if !self.added.insert(class_label) {
+            return;
+        }
         let mut factory_index = 0;
         while let Some(_) = self.pack.verifications.get(factory_index) {
             self.verification_queue.push_back(WorkPacketInternal {
@@ -253,6 +258,49 @@ mod tests {
         ];
         for expected_wp in expected_wps {
             assert_eq!(expected_wp, queue.next().unwrap());
+        }
+        assert_eq!(queue.next(), None);
+    }
+
+    #[test]
+    fn queue_add_class_while_working() {
+        let mut queue = ClassQueue::new(pack(), 0);
+        for _ in 0..3 {
+            queue.next().unwrap();
+        }
+        queue.add(3);
+        assert_eq!(
+            queue.next(),
+            Some(WorkPacket {
+                class_label: 3,
+                factory: &MockStrategy::Verification1
+            })
+        );
+        assert_eq!(
+            queue.next(),
+            Some(WorkPacket {
+                class_label: 3,
+                factory: &MockStrategy::Verification2
+            })
+        );
+        assert_eq!(
+            queue.next(),
+            Some(WorkPacket {
+                class_label: 0,
+                factory: &MockStrategy::Inferral2
+            })
+        );
+    }
+
+    #[test]
+    fn add_same_class_twice() {
+        let mut queue = ClassQueue::new(pack(), 0);
+        for _ in 0..3 {
+            queue.next().unwrap();
+        }
+        queue.add(0);
+        for _ in 3..8 {
+            queue.next().unwrap();
         }
         assert_eq!(queue.next(), None);
     }
