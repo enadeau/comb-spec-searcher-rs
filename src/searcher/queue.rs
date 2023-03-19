@@ -24,28 +24,60 @@ impl WorkPacketInternal {
 
 pub struct ClassQueue<F: StrategyFactory> {
     pack: StrategyPack<F>,
-    queue: VecDeque<usize>,
-    curr_label: usize,
-    strat_index: usize,
-    max_strat_index: usize,
+    verification_queue: VecDeque<WorkPacketInternal>,
+    inferral_queue: VecDeque<WorkPacketInternal>,
+    initial_queue: VecDeque<WorkPacketInternal>,
+    expansion_queue: VecDeque<WorkPacketInternal>,
     ignore: HashSet<usize>,
 }
 
 impl<F: StrategyFactory> ClassQueue<F> {
     pub fn new(pack: StrategyPack<F>, start_label: usize) -> Self {
-        let pack_size = pack.len();
-        Self {
+        let mut queue = Self {
             pack,
-            queue: VecDeque::new(),
-            curr_label: start_label,
-            strat_index: 0,
-            max_strat_index: pack_size,
+            verification_queue: VecDeque::new(),
+            inferral_queue: VecDeque::new(),
+            initial_queue: VecDeque::new(),
+            expansion_queue: VecDeque::new(),
             ignore: HashSet::new(),
-        }
+        };
+        queue.add(start_label);
+        queue
     }
 
-    pub fn add(&mut self, label: usize) {
-        self.queue.push_back(label);
+    pub fn add(&mut self, class_label: usize) {
+        let mut factory_index = 0;
+        while let Some(_) = self.pack.verifications.get(factory_index) {
+            self.verification_queue.push_back(WorkPacketInternal {
+                class_label,
+                factory_index,
+            });
+            factory_index += 1;
+        }
+        let mut cum = factory_index;
+        while let Some(_) = self.pack.inferrals.get(factory_index - cum) {
+            self.inferral_queue.push_back(WorkPacketInternal {
+                class_label,
+                factory_index,
+            });
+            factory_index += 1;
+        }
+        cum = factory_index;
+        while let Some(_) = self.pack.initials.get(factory_index - cum) {
+            self.initial_queue.push_back(WorkPacketInternal {
+                class_label,
+                factory_index,
+            });
+            factory_index += 1;
+        }
+        cum = factory_index;
+        while let Some(_) = self.pack.expansions.get(factory_index - cum) {
+            self.expansion_queue.push_back(WorkPacketInternal {
+                class_label,
+                factory_index,
+            });
+            factory_index += 1;
+        }
     }
 
     pub fn ignore(&mut self, label: usize) {
@@ -63,17 +95,14 @@ impl<F: StrategyFactory> ClassQueue<F> {
 
     /// Return the next logical work packet
     fn next_no_ignore(&mut self) -> Option<WorkPacketInternal> {
-        if self.max_strat_index == self.strat_index {
-            self.ignore(self.curr_label);
-            self.strat_index = 1;
-            self.curr_label = self.queue.pop_front()?;
-        } else {
-            self.strat_index += 1;
+        if let Some(wp) = self.verification_queue.pop_front() {
+            return Some(wp);
+        } else if let Some(wp) = self.inferral_queue.pop_front() {
+            return Some(wp);
+        } else if let Some(wp) = self.initial_queue.pop_front() {
+            return Some(wp);
         }
-        Some(WorkPacketInternal {
-            class_label: self.curr_label,
-            factory_index: self.strat_index - 1,
-        })
+        self.expansion_queue.pop_front()
     }
 }
 
@@ -148,6 +177,82 @@ mod tests {
             let wp = queue.next().unwrap();
             assert_eq!(wp.class_label, 0);
             assert_eq!(wp.factory, &factory);
+        }
+        assert_eq!(queue.next(), None);
+    }
+
+    #[test]
+    fn queue_basic_two_classes_test() {
+        let mut queue = ClassQueue::new(pack(), 0);
+        queue.add(1);
+        let expected_wps = [
+            WorkPacket {
+                class_label: 0,
+                factory: &MockStrategy::Verification1,
+            },
+            WorkPacket {
+                class_label: 0,
+                factory: &MockStrategy::Verification2,
+            },
+            WorkPacket {
+                class_label: 1,
+                factory: &MockStrategy::Verification1,
+            },
+            WorkPacket {
+                class_label: 1,
+                factory: &MockStrategy::Verification2,
+            },
+            WorkPacket {
+                class_label: 0,
+                factory: &MockStrategy::Inferral1,
+            },
+            WorkPacket {
+                class_label: 0,
+                factory: &MockStrategy::Inferral2,
+            },
+            WorkPacket {
+                class_label: 1,
+                factory: &MockStrategy::Inferral1,
+            },
+            WorkPacket {
+                class_label: 1,
+                factory: &MockStrategy::Inferral2,
+            },
+            WorkPacket {
+                class_label: 0,
+                factory: &MockStrategy::Initial1,
+            },
+            WorkPacket {
+                class_label: 0,
+                factory: &MockStrategy::Initial2,
+            },
+            WorkPacket {
+                class_label: 1,
+                factory: &MockStrategy::Initial1,
+            },
+            WorkPacket {
+                class_label: 1,
+                factory: &MockStrategy::Initial2,
+            },
+            WorkPacket {
+                class_label: 0,
+                factory: &MockStrategy::Expansion1,
+            },
+            WorkPacket {
+                class_label: 0,
+                factory: &MockStrategy::Expansion2,
+            },
+            WorkPacket {
+                class_label: 1,
+                factory: &MockStrategy::Expansion1,
+            },
+            WorkPacket {
+                class_label: 1,
+                factory: &MockStrategy::Expansion2,
+            },
+        ];
+        for expected_wp in expected_wps {
+            assert_eq!(expected_wp, queue.next().unwrap());
         }
         assert_eq!(queue.next(), None);
     }
