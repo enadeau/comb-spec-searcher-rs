@@ -14,7 +14,10 @@ struct WorkPacketInternal {
 }
 
 impl WorkPacketInternal {
-    fn make_external<F: StrategyFactory>(self, pack: &StrategyPack<F>) -> WorkPacket<F> {
+    fn make_external<'a, F: StrategyFactory>(
+        &self,
+        pack: &'a StrategyPack<F>,
+    ) -> WorkPacket<'a, F> {
         WorkPacket {
             class_label: self.class_label,
             factory: pack.get_strategy_factory(self.factory_index),
@@ -30,6 +33,7 @@ pub struct ClassQueue<F: StrategyFactory> {
     expansion_queue: VecDeque<WorkPacketInternal>,
     ignore: HashSet<usize>, // Classes that should not be yielded anymore
     added: HashSet<usize>,  // Classes already added to the queue
+    last_wp: Option<WorkPacketInternal>,
 }
 
 impl<F: StrategyFactory> ClassQueue<F> {
@@ -42,6 +46,7 @@ impl<F: StrategyFactory> ClassQueue<F> {
             expansion_queue: VecDeque::new(),
             ignore: HashSet::new(),
             added: HashSet::new(),
+            last_wp: None,
         };
         queue.add(start_label);
         queue
@@ -89,11 +94,14 @@ impl<F: StrategyFactory> ClassQueue<F> {
         self.ignore.insert(label);
     }
 
-    pub fn next(&mut self) -> Option<WorkPacket<F>> {
+    pub fn next(&mut self, last_wp_created_rule: Option<bool>) -> Option<WorkPacket<F>> {
+        self.decide_if_ignore(last_wp_created_rule);
         loop {
             let next = self.next_no_ignore()?;
             if !self.ignore.contains(&next.class_label) {
-                return Some(next.make_external(&self.pack));
+                let external_wp = next.make_external(&self.pack);
+                self.last_wp = Some(next);
+                return Some(external_wp);
             }
         }
     }
@@ -108,6 +116,24 @@ impl<F: StrategyFactory> ClassQueue<F> {
             return Some(wp);
         }
         self.expansion_queue.pop_front()
+    }
+
+    /// Decide whether the class from the last work packet should now be ignore based on whether the
+    /// work packet produced a rule.
+    fn decide_if_ignore(&mut self, last_wp_created_rule: Option<bool>) {
+        match (&self.last_wp, last_wp_created_rule) {
+            (None, None) => (),
+            (None, Some(_)) => panic!("There was not last packet"),
+            (Some(_), None) => panic!("Need info about last packet"),
+            (Some(wp), Some(wp_created_rule)) => {
+                if wp_created_rule
+                    && (self.pack.is_verification(wp.factory_index)
+                        || self.pack.is_inferral(wp.factory_index))
+                {
+                    self.ignore(wp.class_label);
+                }
+            }
+        }
     }
 }
 
@@ -168,7 +194,7 @@ mod tests {
     /// Test that the strategies are yielded in the right order for a single class
     fn queue_basic_one_class_test() {
         let mut queue = ClassQueue::new(pack(), 0);
-        let expected_factory = [
+        let mut expected_factory = [
             MockStrategy::Verification1,
             MockStrategy::Verification2,
             MockStrategy::Inferral1,
@@ -177,20 +203,24 @@ mod tests {
             MockStrategy::Initial2,
             MockStrategy::Expansion1,
             MockStrategy::Expansion2,
-        ];
+        ]
+        .iter();
+        let wp = queue.next(None).unwrap();
+        assert_eq!(wp.class_label, 0);
+        assert_eq!(wp.factory, expected_factory.next().unwrap());
         for factory in expected_factory {
-            let wp = queue.next().unwrap();
+            let wp = queue.next(Some(false)).unwrap();
             assert_eq!(wp.class_label, 0);
-            assert_eq!(wp.factory, &factory);
+            assert_eq!(wp.factory, factory);
         }
-        assert_eq!(queue.next(), None);
+        assert_eq!(queue.next(Some(false)), None);
     }
 
     #[test]
     fn queue_basic_two_classes_test() {
         let mut queue = ClassQueue::new(pack(), 0);
         queue.add(1);
-        let expected_wps = [
+        let mut expected_wps = [
             WorkPacket {
                 class_label: 0,
                 factory: &MockStrategy::Verification1,
@@ -255,36 +285,39 @@ mod tests {
                 class_label: 1,
                 factory: &MockStrategy::Expansion2,
             },
-        ];
+        ]
+        .into_iter();
+        assert_eq!(expected_wps.next().unwrap(), queue.next(None).unwrap());
         for expected_wp in expected_wps {
-            assert_eq!(expected_wp, queue.next().unwrap());
+            assert_eq!(expected_wp, queue.next(Some(false)).unwrap());
         }
-        assert_eq!(queue.next(), None);
+        assert_eq!(queue.next(Some(false)), None);
     }
 
     #[test]
     fn queue_add_class_while_working() {
         let mut queue = ClassQueue::new(pack(), 0);
-        for _ in 0..3 {
-            queue.next().unwrap();
+        queue.next(None).unwrap();
+        for _ in 0..2 {
+            queue.next(Some(false)).unwrap();
         }
         queue.add(3);
         assert_eq!(
-            queue.next(),
+            queue.next(Some(false)),
             Some(WorkPacket {
                 class_label: 3,
                 factory: &MockStrategy::Verification1
             })
         );
         assert_eq!(
-            queue.next(),
+            queue.next(Some(false)),
             Some(WorkPacket {
                 class_label: 3,
                 factory: &MockStrategy::Verification2
             })
         );
         assert_eq!(
-            queue.next(),
+            queue.next(Some(false)),
             Some(WorkPacket {
                 class_label: 0,
                 factory: &MockStrategy::Inferral2
@@ -295,13 +328,50 @@ mod tests {
     #[test]
     fn add_same_class_twice() {
         let mut queue = ClassQueue::new(pack(), 0);
-        for _ in 0..3 {
-            queue.next().unwrap();
+        queue.next(None);
+        for _ in 0..2 {
+            queue.next(Some(false)).unwrap();
         }
         queue.add(0);
         for _ in 3..8 {
-            queue.next().unwrap();
+            queue.next(Some(false)).unwrap();
         }
-        assert_eq!(queue.next(), None);
+        assert_eq!(queue.next(Some(false)), None);
+    }
+
+    #[test]
+    fn stop_yielding_after_verification() {
+        let mut queue = ClassQueue::new(pack(), 0);
+        queue.next(None).unwrap();
+        assert_eq!(queue.next(Some(true)), None);
+    }
+
+    #[test]
+    fn stop_yielding_after_inferral() {
+        let mut queue = ClassQueue::new(pack(), 0);
+        queue.next(None).unwrap();
+        queue.next(Some(false)).unwrap();
+        queue.next(Some(false)).unwrap();
+        assert_eq!(queue.next(Some(true)), None);
+    }
+
+    #[test]
+    fn keep_yielding_after_initial_and_expansion() {
+        let mut queue = ClassQueue::new(pack(), 0);
+        queue.next(None).unwrap(); // ver1
+        queue.next(Some(false)).unwrap(); // ver2
+        queue.next(Some(false)).unwrap(); // inf1
+        queue.next(Some(false)).unwrap(); // inf2
+        queue.next(Some(false)).unwrap(); // init1
+        queue
+            .next(Some(true))
+            .expect("Should yield after successful initial"); // init2
+        queue
+            .next(Some(true))
+            .expect("Should yield after successful initial"); //exp1
+        queue
+            .next(Some(true))
+            .expect("Should yield after successful initial"); //exp2
+        assert_eq!(queue.next(Some(true)), None)
     }
 }

@@ -12,6 +12,7 @@ pub struct CombinatorialSpecificationSearcher<F: StrategyFactory> {
     queue: queue::ClassQueue<F>,
     classdb: classdb::ClassDB<F::ClassType>,
     ruledb: ruledb::RuleDB<F::StrategyType>,
+    last_wp_created_rule: Option<bool>,
 }
 
 impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
@@ -25,6 +26,7 @@ impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
             queue,
             classdb,
             ruledb,
+            last_wp_created_rule: None,
         }
     }
 
@@ -46,14 +48,19 @@ impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
     }
 
     fn expand_once(&mut self) {
-        let wp = self.queue.next().expect("Queue is empty");
+        let wp = self
+            .queue
+            .next(self.last_wp_created_rule)
+            .expect("Queue is empty");
         let class = self
             .classdb
             .get_class_from_label(wp.class_label)
             .expect("Class label not found");
         let rules = wp.factory.apply(&class);
+        self.last_wp_created_rule = Some(false);
         for rule in rules.into_iter() {
             self.add_rule(rule);
+            self.last_wp_created_rule = Some(true);
         }
     }
 

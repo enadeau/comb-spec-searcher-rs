@@ -90,4 +90,12 @@ where
             panic!("Index of strategy out of bound!");
         }
     }
+
+    pub fn is_verification(&self, index: usize) -> bool {
+        index < self.verifications.len()
+    }
+
+    pub fn is_inferral(&self, index: usize) -> bool {
+        index >= self.verifications.len() && index < self.verifications.len() + self.inferrals.len()
+    }
 }
