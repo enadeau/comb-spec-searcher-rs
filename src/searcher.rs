@@ -5,22 +5,28 @@ use crate::specification::CombinatorialSpecification;
 mod classdb;
 mod equiv_db;
 mod queue;
-mod ruledb;
+pub mod ruledb;
 
-pub struct CombinatorialSpecificationSearcher<F: StrategyFactory> {
+pub struct CombinatorialSpecificationSearcher<
+    F: StrategyFactory,
+    R: ruledb::RuleDB<F::StrategyType>,
+> {
     start_label: usize,
     queue: queue::ClassQueue<F>,
     classdb: classdb::ClassDB<F::ClassType>,
-    ruledb: ruledb::RuleDB<F::StrategyType>,
+    ruledb: R,
     last_wp_created_rule: Option<bool>,
 }
 
-impl<F: StrategyFactory> CombinatorialSpecificationSearcher<F> {
-    pub fn new(start_class: F::ClassType, pack: StrategyPack<F>) -> Self {
+impl<F, R> CombinatorialSpecificationSearcher<F, R>
+where
+    F: StrategyFactory,
+    R: ruledb::RuleDB<F::StrategyType>,
+{
+    pub fn new(start_class: F::ClassType, pack: StrategyPack<F>, ruledb: R) -> Self {
         let mut classdb = classdb::ClassDB::new();
         let start_label = classdb.get_label_from_class_or_add(&start_class);
         let queue = queue::ClassQueue::new(pack, start_label);
-        let ruledb = ruledb::RuleDB::new();
         Self {
             start_label,
             queue,

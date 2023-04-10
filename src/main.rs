@@ -1,4 +1,5 @@
 use comb_spec_searcher::pack::StrategyPack;
+use comb_spec_searcher::ruledb;
 use comb_spec_searcher::word;
 use comb_spec_searcher::CombinatorialSpecificationSearcher;
 use serde_json;
@@ -14,8 +15,9 @@ fn main() {
         expansions: vec![word::WordStrategy::Expansion],
         verifications: vec![word::WordStrategy::Empty, word::WordStrategy::Atom],
     };
+    let ruledb = ruledb::SimpleRuleDB::new();
 
-    let mut searcher = CombinatorialSpecificationSearcher::new(start_class, pack);
+    let mut searcher = CombinatorialSpecificationSearcher::new(start_class, pack, ruledb);
     let spec = searcher.auto_search().expect("No spec");
     for rule in spec.rules.into_iter() {
         let parent = rule.get_parent();

@@ -5,5 +5,6 @@ mod searcher;
 mod specification;
 pub mod word;
 
+pub use searcher::ruledb;
 pub use searcher::CombinatorialSpecificationSearcher;
 pub use specification::CombinatorialSpecification;
