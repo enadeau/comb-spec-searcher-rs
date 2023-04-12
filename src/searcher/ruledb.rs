@@ -6,6 +6,8 @@ use crate::specification::CombinatorialSpecification;
 
 mod simple;
 pub use simple::SimpleRuleDB;
+mod forest;
+pub use forest::ForestRuleDB;
 
 pub trait RuleDB<S: Strategy> {
     fn get_specification(
