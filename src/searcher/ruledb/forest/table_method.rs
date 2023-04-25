@@ -1,9 +1,10 @@
 use super::{Function, IntOrInf};
+use core::slice::Iter;
 use std;
 use std::collections::{HashMap, HashSet, VecDeque};
 
-#[derive(Debug)]
-enum RuleBucket {
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub enum RuleBucket {
     Undefined,
     Verification,
     Equiv,
@@ -55,8 +56,8 @@ impl RuleClassConnector {
     }
 }
 
-#[derive(Debug)]
-struct ForestRuleKey {
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub struct ForestRuleKey {
     parent: u32,
     children: Vec<u32>,
     shifts: Vec<i8>,
@@ -80,6 +81,18 @@ impl ForestRuleKey {
 
     pub fn key(&self) -> (&u32, &Vec<u32>) {
         (&self.parent, &self.children)
+    }
+
+    pub fn get_bucket(&self) -> &RuleBucket {
+        &self.bucket
+    }
+
+    pub fn get_parent(&self) -> &u32 {
+        &self.parent
+    }
+
+    pub fn iter_children(&self) -> Iter<u32> {
+        self.children.iter()
     }
 }
 
@@ -110,7 +123,7 @@ impl TableMethod {
     }
 
     /// Add the rule to the database
-    pub fn add_rule_key(&mut self, rule_key: ForestRuleKey) {
+    pub fn add_rule_key(&mut self, rule_key: ForestRuleKey) -> &ForestRuleKey {
         self.rules.push(rule_key);
         let rule_key = self.rules.last().unwrap();
         self.shifts.push(self.compute_shift(&rule_key));
@@ -135,6 +148,8 @@ impl TableMethod {
             self.processing_queue.push_back(rule_idx);
         }
         self.process_queue();
+        let rule_key = self.rules.last().unwrap();
+        rule_key
     }
 
     /// Determine if the comb_class is pumping in the current universe.
@@ -149,14 +164,28 @@ impl TableMethod {
     /// Iterator over all the forest rule keys that contain only pumping
     /// combinatorial classes.
     pub fn pumping_subuniverse(&self) -> impl Iterator<Item = &ForestRuleKey> {
-        let stable_subset: HashSet<_> = self.stable_subset().collect();
         self.rules.iter().filter(move |forest_key| {
+            self.is_pumping(forest_key.parent)
+                && forest_key.children.iter().all(|c| self.is_pumping(*c))
+        })
+    }
+
+    /// Consumes the self and iterate all the forest rule keys that contain only pumping
+    /// combinatorial classes.
+    pub fn into_pumping_subuniverse(self) -> impl Iterator<Item = ForestRuleKey> {
+        let stable_subset: HashSet<_> = self.stable_subset().collect();
+        self.rules.into_iter().filter(move |forest_key| {
             stable_subset.contains(&forest_key.parent)
                 && forest_key
                     .children
                     .iter()
                     .all(|c| stable_subset.contains(c))
         })
+    }
+
+    /// Consumes self and returns all the forest rule keys it contains.
+    pub fn into_rules(self) -> impl Iterator<Item = ForestRuleKey> {
+        self.rules.into_iter()
     }
 
     /// Compute the initial value for the shifts a rule based on the current state of
@@ -320,9 +349,9 @@ mod tests {
         ];
         let mut tb = TableMethod::new();
         for rule in rules.into_iter() {
-            tb.add_rule_key(rule)
+            tb.add_rule_key(rule);
         }
-        for i in (0..6) {
+        for i in 0..6 {
             assert_eq!(*tb.function.get_value(i), IntOrInf::Infinity)
         }
         assert!((0..6).all(|c| tb.is_pumping(c)));
@@ -456,7 +485,7 @@ mod tests {
         ];
         let mut tb = TableMethod::new();
         for rule in rules.into_iter() {
-            tb.add_rule_key(rule)
+            tb.add_rule_key(rule);
         }
         assert_eq!(tb.function.get_value(0), &IntOrInf::Int(0));
         assert_eq!(tb.function.get_value(1), &IntOrInf::Int(0));

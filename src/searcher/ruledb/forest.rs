@@ -3,11 +3,12 @@ use crate::errors::SpecificationNotFoundError;
 use crate::searcher::classdb;
 use crate::CombinatorialSpecification;
 
+mod extractor;
 mod function;
 mod table_method;
 
 pub use function::{Function, IntOrInf};
-pub use table_method::TableMethod;
+pub use table_method::{ForestRuleKey, RuleBucket, TableMethod};
 
 pub struct ForestRuleDB {
     reverse: bool,
